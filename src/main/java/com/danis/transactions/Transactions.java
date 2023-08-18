@@ -1,51 +1,47 @@
-package ru.otus.p2.transactions;
+package com.danis.transactions;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import ru.otus.utils.Utils;
-import ru.otus.utils.LoggingConsumer;
+import util.LoggingTransactionalConsumer;
+import util.Utils;
 
-public class Ex7IsolationLevel {
+
+public class Transactions {
     public static void main(String[] args) throws Exception {
-        Utils.recreateTopics(1, 1, "topic1");
+        Utils.recreateTopics(1, 1, "topic1", "topic2");
 
         try (
                 var producerTransactional = new KafkaProducer<String, String>(Utils.createProducerConfig(b -> {
                     b.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "ex7");
                 }));
-                var producer = new KafkaProducer<String, String>(Utils.producerConfig);
-                var consumerRC = new LoggingConsumer("ReadCommitted", "topic1", Utils.consumerConfig, true);
-                var consumerRUnC = new LoggingConsumer("ReadUncommitted", "topic1", Utils.consumerConfig, false)) {
 
-            producerTransactional.initTransactions();
+                LoggingTransactionalConsumer consumerTopic1 = new LoggingTransactionalConsumer("ReadCommittedTopic1", "topic1", Utils.consumerConfig, true);
+                LoggingTransactionalConsumer consumerTopic2 = new LoggingTransactionalConsumer("ReadCommittedTopic2", "topic2", Utils.consumerConfig, true)) {
+            {
 
-            Utils.log.info("beginTransaction");
-            producerTransactional.beginTransaction();
-            Thread.sleep(500);
-            producer.send(new ProducerRecord<>("topic1", "0"));
+                producerTransactional.initTransactions();
 
-            Thread.sleep(500);
-            producerTransactional.send(new ProducerRecord<>("topic1", "1"));
+                Utils.log.info("beginTransaction");
+                producerTransactional.beginTransaction();
+                for (int i = 0; i < 5; i++) {
+                    producerTransactional.send(new ProducerRecord<>("topic1", "Transactional topic 1 massage: " + Integer.toString(i)));
+                    producerTransactional.send(new ProducerRecord<>("topic2", "Transactional topic 2 massage: " + Integer.toString(i)));
+                }
+                producerTransactional.commitTransaction();
 
-            Thread.sleep(500);
-            producer.send(new ProducerRecord<>("topic1", "2"));
+                producerTransactional.beginTransaction();
+                Thread.sleep(500);
+                for (int i = 0; i < 2; i++) {
+                    producerTransactional.send(new ProducerRecord<>("topic1", "Aborted topic 1 massage: " + Integer.toString(10 * i)));
+                    producerTransactional.send(new ProducerRecord<>("topic2", "Aborted topic 2 massage: " + Integer.toString(10 * i)));
+                }
 
-            Thread.sleep(500);
-            producerTransactional.send(new ProducerRecord<>("topic1", "3"));
+                producerTransactional.abortTransaction();
+                Thread.sleep(5000);
 
-            Thread.sleep(500);
-            Utils.log.info("commitTransaction");
-            producerTransactional.commitTransaction();
+            }
 
-            producerTransactional.beginTransaction();
-            producerTransactional.send(new ProducerRecord<>("topic1", "4"));
-            Thread.sleep(500);
-            Utils.log.info("abortTransaction");
-            producerTransactional.abortTransaction();
-
-            Thread.sleep(1000);
         }
-
     }
 }

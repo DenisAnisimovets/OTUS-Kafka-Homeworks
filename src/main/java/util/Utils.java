@@ -1,9 +1,4 @@
-package ru.otus.utils;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
+package util;
 
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClientConfig;
@@ -16,6 +11,12 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Utils {
     public static Logger log = LoggerFactory.getLogger("appl");
@@ -100,7 +101,7 @@ public class Utils {
             RemoveAll.removeAll(admin);
             admin.createTopics(Stream.of(topics)
                     .map(it -> new NewTopic(it, numPartitions, (short)replicationFactor))
-                    .toList());
+                    .collect(Collectors.toList()));
         });
     }
 }

@@ -1,4 +1,4 @@
-package ru.otus.utils;
+package util;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;

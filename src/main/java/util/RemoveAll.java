@@ -1,4 +1,4 @@
-package ru.otus.utils;
+package util;
 
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
@@ -8,6 +8,7 @@ import org.apache.kafka.common.errors.TopicExistsException;
 
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 /**
  * Удаление всех созданных топиков с экспериментами в асинхронность
@@ -21,7 +22,7 @@ public class RemoveAll {
                 .get() // вот тот самый переход
                 .stream()
                 .map(TopicListing::name)
-                .toList();
+                .collect(Collectors.toList());
 
         Utils.log.info("External topics: {}", topics);
 
@@ -41,7 +42,7 @@ public class RemoveAll {
         var topics = sync(client);
 
         // не нашел лучшего варианта. После удаления на сомом деле топики еще не удалены и создать их нельзя
-        var newTopics = topics.stream().map(t -> new NewTopic(t, 1, (short) 1)).toList();var options = new CreateTopicsOptions().validateOnly(true);
+        var newTopics = topics.stream().map(t -> new NewTopic(t, 1, (short) 1)).collect(Collectors.toList());var options = new CreateTopicsOptions().validateOnly(true);
 
         while (true) {
             try {
